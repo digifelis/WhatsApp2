@@ -2,6 +2,7 @@
 WhatsApp ile tek numaranın çoklu kullanıcı ile kullanılması.
 
 Kurulum Adımları
+
 1)
 hesk284.zip dosyası ile Hesk kurulumu yapılır.
 https://www.hesk.com/
