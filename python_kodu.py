@@ -75,15 +75,19 @@ def yazi_temizle(yazi):
     return x
 
 
-def veri_getir(panel_adresi):
-    with urllib.request.urlopen(panel_adresi + "/wp/wp1.php?operator=1") as url:
-        data = json.loads(url.read().decode('utf-8-sig'))
+def veri_getir(panel_adresi,user_id):
+    try:
+        gelen_cevap = urllib.request.urlopen(panel_adresi + "/wp/wp1.php?operator="+user_id)
+        data = json.loads(gelen_cevap.read().decode('utf-8-sig'))
         if len(data) > 0:
             x = 0
             while x < len(data):
                 yazi = data[x].split('|')
                 send_whatsapp_msg(yazi[1], yazi_temizle(yazi[2]), yazi[0], yazi[3])
                 x = x + 1
+    except:
+        print("veri getir hata üretti")
+        pass
 
 
 def veri_duzelt(bilgi, panel_adresi):
@@ -132,6 +136,7 @@ def send_whatsapp_msg(phone_no, text, veri_id, dosya):
                 #txt_box.send_keys("\n")
 
         veri_duzelt(veri_id, panel_adresi)
+        pinli_olana_tikla()
     except Exception as e:
         print("invailid phone no :" + str(phone_no) + e)
 
@@ -271,135 +276,139 @@ def dosya_yukleme(panel_adresi, trakingid, dosya, mesaj):
 
 
 def yeni_gelen(istemci_adi, panel_adresi, token):
-    istemciler = {istemci_adi}  # A dictionary that stores all the users that sent activate bot
-    resimler = []
-    resim_varmi = 0
-    unread = driver.find_elements_by_class_name("P6z4j")  # The green dot tells us that the message is new  # _1ZMSM
-    name, message = '', ''
-    if len(unread) > 0:
-        ele = unread[-1]
-        action = webdriver.common.action_chains.ActionChains(driver)
-        action.move_to_element_with_offset(ele, 0, -20)  # move a bit to the left from the green dot
-        print("yeni gelen mesaj sayısı " + ele.text)
-        if ele.text == '':
-            yeni_mesaj_sayisi = 1
-        else:
-            yeni_mesaj_sayisi = int(ele.text)
-        # Clicking couple of times because sometimes whatsapp web responds after two clicks
-        try:
-            action.click()
-            action.perform()
-            action.click()
-            action.perform()
-        except Exception as e:
-            pass
-        time.sleep(2)
-        toplam_mesaj = ""
-        resim1 = ""
-
-        if driver.find_elements_by_class_name("_19RFN"):
-            name = driver.find_element_by_class_name("_19RFN").text  # Contact name # copyable-text
-            # print(len(driver.find_elements_by_class_name("vW7d1")))
-            mesaj_sayisi = len(driver.find_elements_by_class_name("FTBzM"))
-            print("mesaj sayısı : " + str(mesaj_sayisi))
-            print("yeni mesaj sayisi : " + str(yeni_mesaj_sayisi))
-            print("name bilgisi :" + name)
-            x = 1
-            # baloncuk içerisindeki sayı kadar son mesajı okuyor
-            if yeni_mesaj_sayisi > 0:
-                while x <= yeni_mesaj_sayisi:
-                    message = driver.find_elements_by_class_name("FTBzM")[-x]  # the message content
-                    if message.find_elements_by_class_name("selectable-text"):
-                        # message.find_element_by_class_name("selectable-text")
-                        message1 = message.find_element_by_class_name("selectable-text").text
-                        gonderen = message.find_element_by_class_name("copyable-text")
-                        gonderen1 = gonderen.get_attribute('data-pre-plain-text')
-                        name1 = gonderen1.split(']')
-                        name2 = name1[1].split(':')
-                        name3 = name2[0].strip()
-                        name = name3
-                        print('ilk' + name + '---' + message1 + '---' + gonderen1 + '---')
-                    else:
-                        message1 = ""
-                        gonderen1 = "1sallama birşeyler sonra burayı düzeltirim +90 555 999 88 77"
-
-                    # resim varmı kontrol
-                    if message.find_elements_by_class_name("_18vxA"):  # _1JVSX
-                        resim = message.find_element_by_class_name("_18vxA")
-                        resim1 = resim.get_attribute("src")
-                        print("resim bilgisi : " + "---" + str(resim1))
-                        bytes = get_file_content_chrome(driver, str(resim1))
-                        # print(bytes)
-                        # şimdilik jpg alıyorum. diğer resim formatlarında afallıyor.
-                        file_name = "./" + user_id + "/" + str(x) + ".jpg"
-                        userImage = open(file_name, "wb")
-                        resimler.append(file_name)
-                        userImage.write(bytes)
-                        userImage.close()
-                        resim_varmi = 1
-                    else:
-                        print("resim yok 1")
-                        resim_varmi = 0
-
-                    toplam_mesaj = message1 + ' <br> ' + toplam_mesaj
-                    x = x + 1
-
-        if len(toplam_mesaj) == 0:
-            toplam_mesaj = toplam_mesaj + "ek dosya"
-        name = karakter_temizleme(name)
-        durum = veri_getir1(name, panel_adresi)
-        durum1 = durum.split('|')
-        print(durum)
-
-        if durum1[0] == '0':
-            # yeni ticket oluştur ve vt ye traking bilgilerini kaydet
-            ticket_olustur = api_gonder(panel_adresi + '/api/index.php/v1/tickets', name, toplam_mesaj, token)
-            print(ticket_olustur)
-            j = json.loads(ticket_olustur)
-            if 'type' in j:
-                print("hata oluştu1")
+    try:
+        istemciler = {istemci_adi}  # A dictionary that stores all the users that sent activate bot
+        resimler = []
+        resim_varmi = 0
+        unread = driver.find_elements_by_class_name("P6z4j")  # The green dot tells us that the message is new  # _1ZMSM
+        name, message = '', ''
+        if len(unread) > 0:
+            ele = unread[-1]
+            action = webdriver.common.action_chains.ActionChains(driver)
+            action.move_to_element_with_offset(ele, 0, -20)  # move a bit to the left from the green dot
+            print("yeni gelen mesaj sayısı " + ele.text)
+            if ele.text == '':
+                yeni_mesaj_sayisi = 1
             else:
-                parametre = 'islem=yeni&t_id=' + str(j['id']) + '&trackingid=' + j['trackingId'] + '&tel=' + j[
-                    'name'] + '&durum=acik'
-                print(parametre)
-                print("ilk defa iletişim")
-                urllib.request.urlopen(panel_adresi + "/wp/track_ekle.php?" + parametre)
+                yeni_mesaj_sayisi = int(ele.text)
+            # Clicking couple of times because sometimes whatsapp web responds after two clicks
+            try:
+                action.click()
+                action.perform()
+                action.click()
+                action.perform()
+            except Exception as e:
+                pass
+            time.sleep(2)
+            toplam_mesaj = ""
+            resim1 = ""
+
+            if driver.find_elements_by_class_name("_19vo_"): # _19RFN
+                name = driver.find_element_by_class_name("_19vo_").text  # _19RFN # Contact name # copyable-text
+                # print(len(driver.find_elements_by_class_name("vW7d1")))
+                mesaj_sayisi = len(driver.find_elements_by_class_name("FTBzM"))
+                print("mesaj sayısı : " + str(mesaj_sayisi))
+                print("yeni mesaj sayisi : " + str(yeni_mesaj_sayisi))
+                print("name bilgisi :" + name)
+                x = 1
+                # baloncuk içerisindeki sayı kadar son mesajı okuyor
+                if yeni_mesaj_sayisi > 0:
+                    while x <= yeni_mesaj_sayisi:
+                        message = driver.find_elements_by_class_name("FTBzM")[-x]  # the message content
+                        if message.find_elements_by_class_name("selectable-text"):
+                            # message.find_element_by_class_name("selectable-text")
+                            message1 = message.find_element_by_class_name("selectable-text").text
+                            gonderen = message.find_element_by_class_name("copyable-text")
+                            gonderen1 = gonderen.get_attribute('data-pre-plain-text')
+                            name1 = gonderen1.split(']')
+                            name2 = name1[1].split(':')
+                            name3 = name2[0].strip()
+                            name = name3
+                            print('ilk' + name + '---' + message1 + '---' + gonderen1 + '---')
+                        else:
+                            message1 = ""
+                            gonderen1 = "1sallama birşeyler sonra burayı düzeltirim +90 555 999 88 77"
+
+                        # resim varmı kontrol
+                        if message.find_elements_by_class_name("_18vxA"):  # _1JVSX
+                            resim = message.find_element_by_class_name("_18vxA")
+                            resim1 = resim.get_attribute("src")
+                            print("resim bilgisi : " + "---" + str(resim1))
+                            bytes = get_file_content_chrome(driver, str(resim1))
+                            # print(bytes)
+                            # şimdilik jpg alıyorum. diğer resim formatlarında afallıyor.
+                            file_name = "./" + user_id + "/" + str(x) + ".jpg"
+                            userImage = open(file_name, "wb")
+                            resimler.append(file_name)
+                            userImage.write(bytes)
+                            userImage.close()
+                            resim_varmi = 1
+                        else:
+                            print("resim yok 1")
+                            resim_varmi = 0
+
+                        toplam_mesaj = message1 + ' <br> ' + toplam_mesaj
+                        x = x + 1
+
+            if len(toplam_mesaj) == 0:
+                toplam_mesaj = toplam_mesaj + "ek dosya"
+            name = karakter_temizleme(name)
+            durum = veri_getir1(name, panel_adresi)
+            durum1 = durum.split('|')
+            print(durum)
+
+            if durum1[0] == '0':
+                # yeni ticket oluştur ve vt ye traking bilgilerini kaydet
+                ticket_olustur = api_gonder(panel_adresi + '/api/index.php/v1/tickets', name, toplam_mesaj, token)
+                print(ticket_olustur)
+                j = json.loads(ticket_olustur)
+                if 'type' in j:
+                    print("hata oluştu1")
+                else:
+                    parametre = 'islem=yeni&t_id=' + str(j['id']) + '&trackingid=' + j['trackingId'] + '&tel=' + j[
+                        'name'] + '&durum=acik'
+                    print(parametre)
+                    print("ilk defa iletişim")
+                    urllib.request.urlopen(panel_adresi + "/wp/track_ekle.php?" + parametre)
+                    if resim_varmi == 1:
+                        for i in resimler:
+                            sonuc = dosya_yukleme(panel_adresi, j['trackingId'], i, toplam_mesaj)
+                            os.unlink(i)
+                            print(sonuc)
+            elif durum1[0] == 'kapali':
+                # ticket kapalıdır yeni ticket oluştur ve vt ye tracking bilgilerini kaydet
+                ticket_olustur = api_gonder(panel_adresi + '/api/index.php/v1/tickets', name, toplam_mesaj, token)
+                j = json.loads(ticket_olustur)
+                if 'type' in j:
+                    print("hata oluştu2")
+                else:
+                    urllib.request.urlopen(
+                        panel_adresi + "/wp/track_ekle.php?islem=yeni&t_id=" + str(j['id']) + '&trackingid=' + j[
+                            'trackingId'] + '&tel=' + j['name'] + '&durum=acik')
+                    print("ticket kapalı yenisi oluşturuldu")
+                    if resim_varmi == 1:
+                        for i in resimler:
+                            sonuc = dosya_yukleme(panel_adresi, j['trackingId'], i, toplam_mesaj)
+                            os.unlink(i)
+                            print(sonuc)
+            elif durum1[0] == 'acik':
+                # durum1[2] bilgisine göre api kullanarak cevap ekle
+                adres = panel_adresi + '/api/index.php/v1/tickets/' + str(durum1[1]) + '/replies'
+                pinli_olana_tikla()
+                ticket_olustur = api_cevap(adres, durum1[2], toplam_mesaj, token)
+                print(ticket_olustur)
+                print("ticket var ve açık cevap yazıldı")
                 if resim_varmi == 1:
                     for i in resimler:
-                        sonuc = dosya_yukleme(panel_adresi, j['trackingId'], i, toplam_mesaj)
+                        sonuc = dosya_yukleme(panel_adresi, durum1[2], i, toplam_mesaj)
                         os.unlink(i)
                         print(sonuc)
-        elif durum1[0] == 'kapali':
-            # ticket kapalıdır yeni ticket oluştur ve vt ye tracking bilgilerini kaydet
-            ticket_olustur = api_gonder(panel_adresi + '/api/index.php/v1/tickets', name, toplam_mesaj, token)
-            j = json.loads(ticket_olustur)
-            if 'type' in j:
-                print("hata oluştu2")
             else:
-                urllib.request.urlopen(
-                    panel_adresi + "/wp/track_ekle.php?islem=yeni&t_id=" + str(j['id']) + '&trackingid=' + j[
-                        'trackingId'] + '&tel=' + j['name'] + '&durum=acik')
-                print("ticket kapalı yenisi oluşturuldu")
-                if resim_varmi == 1:
-                    for i in resimler:
-                        sonuc = dosya_yukleme(panel_adresi, j['trackingId'], i, toplam_mesaj)
-                        os.unlink(i)
-                        print(sonuc)
-        elif durum1[0] == 'acik':
-            # durum1[2] bilgisine göre api kullanarak cevap ekle
-            adres = panel_adresi + '/api/index.php/v1/tickets/' + str(durum1[1]) + '/replies'
-            pinli_olana_tikla()
-            ticket_olustur = api_cevap(adres, durum1[2], toplam_mesaj, token)
-            print(ticket_olustur)
-            print("ticket var ve açık cevap yazıldı")
-            if resim_varmi == 1:
-                for i in resimler:
-                    sonuc = dosya_yukleme(panel_adresi, durum1[2], i, toplam_mesaj)
-                    os.unlink(i)
-                    print(sonuc)
-        else:
-            print("işlem yok")
-        # print('api bilgisi : ' + ticket_olustur)
+                print("işlem yok")
+            # print('api bilgisi : ' + ticket_olustur)
+    except:
+        print("yeni gelen hata üretti")
+        pass
 
 
 # tarayıcıyı başlat
@@ -425,14 +434,19 @@ def karekod(user_id):
         time.sleep(5)
         return True
     except:
+        print("karekod hata üretti")
         return False
 
 
 def karekod_yukle(durum, user_id):
-    values = {'durum': durum, 'user_id': user_id}
-    with open(user_id + '_karekod.png', 'rb') as f:
-        r = requests.post(panel_adresi + '/wp/karekod.php', files={'dosya': f}, data=values)
-    return r.text
+    try:
+        values = {'durum': durum, 'user_id': user_id}
+        with open(user_id + '_karekod.png', 'rb') as f:
+            r = requests.post(panel_adresi + '/wp/karekod.php', files={'dosya': f}, data=values)
+        return r.text
+    except:
+        return "kare kod yükleme hata üretti"
+        pass
 
 
 def giris_kontrol():
@@ -442,17 +456,24 @@ def giris_kontrol():
         return False
 
 def kara_liste_sil(url):
-    response = requests.request("GET", url+'/wp/kara_liste.php')
-    return response
+    try:
+        response = requests.request("GET", url+'/wp/kara_liste.php')
+        return response
+    except:
+        print("kara liste sil hata üretti")
+        pass
 
 def pinli_olana_tikla():
-    #attachment_box = driver.find_element_by_xpath('//span[@data-icon = "pinned"]')
-    attachment_box = driver.find_element_by_xpath('//div[@class="_1ZMSM"]')
-    attachment_box.click()
-    attachment_box.click()
-    attachment_box.click()
-    attachment_box.click()
-
+    try:
+        #attachment_box = driver.find_element_by_xpath('//span[@data-icon = "pinned"]')
+        attachment_box = driver.find_element_by_xpath('//div[@class="_1ZMSM"]')
+        attachment_box.click()
+        attachment_box.click()
+        attachment_box.click()
+        attachment_box.click()
+    except:
+        print("pinli olana tıklama hata üretti")
+        pass
 
 
 
@@ -465,18 +486,14 @@ try:
             if int(c.seconds) > 5:
                 karekod('1')
                 cevap = karekod_yukle('0', user_id)
-                #print(cevap)
-                #print("karekod gonderildi")
                 a = datetime.datetime.now()
         if giris_kontrol() == True:
             kara_liste_sil(panel_adresi)
-            veri_getir(panel_adresi)
+            veri_getir(panel_adresi,user_id)
             if int(c.seconds) > 15:
                 cevap = karekod_yukle('1', user_id)
-                #print(str(datetime.datetime.now()) + '  kare kod yükleme verisi : '+cevap)
                 # gelen kontrolü
                 yeni_gelen(istemci_adi, panel_adresi, token)
-                #pinli_olana_tikla()
                 a = datetime.datetime.now()
         #time.sleep(15)
 except KeyboardInterrupt:
