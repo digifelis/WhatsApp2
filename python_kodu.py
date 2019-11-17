@@ -13,11 +13,11 @@ from binascii import a2b_base64
 import base64
 import os
 
-panel_adresi = "http://wp1.mansurex.com"
+panel_adresi = "http://website.address"
 istemci_adi = "Mansur"
-istemci_tel_no = "905053144439"
-#token = "7e9de64caaf1b0c887351270900e8cdd"
-token = "cd6bfdc3741a2a1a7fde441863d8e85c"
+istemci_tel_no = ""
+#token = ""
+token = ""
 user_id = "1"
 
 # user id için indirilen fotoların geçici olarak kaydedileceği klasör oluşturma
